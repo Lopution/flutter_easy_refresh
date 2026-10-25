@@ -1452,6 +1452,53 @@ void main() {
       await disposeAndFlush(tester);
     });
 
+    testWidgets('a Header held in the inner list closes in place', (
+      tester,
+    ) async {
+      final key = GlobalKey<_NestedInnerHeaderHarnessState>();
+      await tester.pumpWidget(_NestedInnerHeaderHarness(key: key));
+      final state = key.currentState!;
+      await tester.pumpAndSettle();
+      final outer = tester
+          .state<NestedScrollViewState>(find.byType(NestedScrollView))
+          .outerController
+          .position;
+
+      final gesture = await tester.startGesture(
+        tester.getCenter(find.byKey(const Key('inner-item-0'))),
+      );
+      await gesture.moveBy(const Offset(0, 280));
+      await tester.pump();
+      await gesture.up();
+      await waitUntil(
+        () => state.headerState?.mode == IndicatorMode.processing,
+        tester,
+      );
+      // While it refreshes, the AppBar collapses and the Header scrolls off.
+      await tester.drag(
+        find.byKey(const Key('inner-item-3')),
+        const Offset(0, -300),
+      );
+      await tester.pumpAndSettle();
+      final outerPixels = outer.pixels;
+      expect(outerPixels, outer.maxScrollExtent);
+      final item = find.byKey(const Key('inner-item-8'));
+      final itemTop = tester.getTopLeft(item).dy;
+
+      state.finishRefresh();
+      await waitUntil(() => (state.headerState?.offset ?? 0) < 1, tester);
+      await tester.pumpAndSettle();
+      expect(outer.pixels, outerPixels);
+      expect(tester.getTopLeft(item).dy, closeTo(itemTop, 1));
+
+      // The next drag starts from what is on screen.
+      await tester.drag(item, const Offset(0, -10));
+      await tester.pumpAndSettle();
+      expect(tester.getTopLeft(item).dy, closeTo(itemTop - 10, 2));
+
+      await disposeAndFlush(tester);
+    });
+
     testWidgets('inner nested fling to top does not stick Header', (
       tester,
     ) async {

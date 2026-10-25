@@ -36,6 +36,9 @@ class HeaderLocator extends StatelessWidget {
           headerNotifier.iPosition == IndicatorPosition.custom,
       'Cannot use HeaderLocator when header position is not IndicatorPosition.locator.',
     );
+    if (!clearExtent) {
+      headerNotifier._extentLocatorScrollable = Scrollable.maybeOf(context);
+    }
     return ValueListenableBuilder(
       valueListenable: headerNotifier.listenable(),
       builder: (ctx, notifier, _) {

@@ -219,6 +219,11 @@ abstract class IndicatorNotifier extends ChangeNotifier {
   /// NestedScrollView inner position last driven by the user.
   ScrollPosition? _nestedInnerPosition;
 
+  /// The scrollable of a [HeaderLocator] that keeps its extent
+  /// ([HeaderLocator.clearExtent] false): the outer view under
+  /// [EasyRefresh.nested], or a tab's list that holds its own locator.
+  ScrollableState? _extentLocatorScrollable;
+
   bool isNestedOuterPosition(ScrollMetrics position) {
     if (position is! ScrollPosition) {
       return false;
@@ -1065,20 +1070,17 @@ abstract class IndicatorNotifier extends ChangeNotifier {
     position.correctBy(-correction);
   }
 
+  /// The position whose content holds the Header's extent. Null when no
+  /// locator keeps extent: closing the Header then moves no content, and
+  /// correcting another view (the outer, under a tab's own locator) left
+  /// its pixels out of step with what it had laid out, so the next drag
+  /// jumped the AppBar.
   ScrollPosition? _nestedHeaderHostPosition() {
-    if (_position is ScrollPosition) {
-      final current = _position as ScrollPosition;
-      if (current.hasPixels) {
-        return current;
-      }
+    final scrollable = _extentLocatorScrollable;
+    if (scrollable == null || !scrollable.mounted) {
+      return null;
     }
-    if (_nestedOuterPosition != null && _nestedOuterPosition!.hasPixels) {
-      return _nestedOuterPosition;
-    }
-    if (_nestedInnerPosition != null && _nestedInnerPosition!.hasPixels) {
-      return _nestedInnerPosition;
-    }
-    return null;
+    return scrollable.position;
   }
 
   /// Header is off the collapsed NestedScrollView. Drop extent in one frame
